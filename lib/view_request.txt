@@ -1,0 +1,94 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
+
+import 'package:mega_project/dummy2.dart';
+
+class ApprovalScreen extends StatefulWidget {
+  @override
+  _ApprovalScreenState createState() => _ApprovalScreenState();
+}
+
+class _ApprovalScreenState extends State<ApprovalScreen> {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  List<DocumentSnapshot> _requests = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _getRequests();
+  }
+
+  void _getRequests() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    //String uid = _auth.currentUser.uid;
+
+    QuerySnapshot snapshot = await _db
+        .collection('info')
+        .get();
+
+    setState(() {
+      _requests = snapshot.docs;
+      _isLoading = false;
+    });
+  }
+
+  Widget _buildRequestList() {
+    if (_isLoading) {
+      return Center(
+        child: CircularProgressIndicator(),
+      );
+    } else if (_requests.isEmpty) {
+      return Center(
+        child: Text('No student requests found.'),
+      );
+    } else {
+      return ListView.builder(
+        itemCount: _requests.length,
+        itemBuilder: (BuildContext context, int index) {
+          Map<String, dynamic> requestDetails = _requests[index].data() as Map<String, dynamic>;
+
+          return ListTile(
+            title: Text(requestDetails['Name']),
+            subtitle: Text(
+              DateFormat.yMd()
+                  .add_jm()
+                  .format(requestDetails['timestamp'].toDate()),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) =>
+                      StudentRequestDetailsScreen(
+                    
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Student Requests'),
+      ),
+      body: _buildRequestList(),
+    );
+  }
+}
